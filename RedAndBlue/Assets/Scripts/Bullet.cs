@@ -4,20 +4,54 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    private void Start()
+    private float speed = 20f;
+    private Vector3 shootDirection;
+
+    public void Setup(Vector3 shootDir)
     {
-        StartCoroutine("DestroyBullet");
+        shootDirection = shootDir;
+        Destroy(gameObject, 3.0f);
+    }
+
+    private void Update()
+    {
+        transform.position += shootDirection * speed * Time.deltaTime;
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        Destroy(gameObject);
-        Destroy(collision.gameObject);
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            Destroy(gameObject);
+            Destroy(collision.gameObject);
+        }
     }
 
-    IEnumerator DestroyBullet()
+    private void OnTriggerEnter(Collider other)
     {
-        yield return new WaitForSeconds(3.0f);
-        Destroy(gameObject);
+        if(this.tag == "RedBullet")
+        {
+            if(other.CompareTag("Blue"))
+            {
+                Destroy(gameObject);
+                Destroy(other.gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+        else if(this.tag == "BlueBullet")
+        {
+            if(other.CompareTag("Red"))
+            {
+                Destroy(gameObject);
+                Destroy(other.gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
     }
 }

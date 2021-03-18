@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum PlayerNumber
-{
-    PLAYER1,
-    PLAYER2
-}
-
 public enum InputType
 {
     Joystick,
     Keyboard
+}
+
+public enum PlayerColor
+{
+    Red,
+    Blue
 }
 
 public class PlayerController : MonoBehaviour
@@ -19,24 +19,21 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 5f;
     [SerializeField] private float movementSpeed = 10f;
     private Camera mainCamera = null;
-    [SerializeField] private PlayerNumber playerNumber = PlayerNumber.PLAYER1;
     [SerializeField] private InputType inputType = InputType.Keyboard;
-    private int playerNum = 1;
-
+    [SerializeField] private PlayerColor playerColor = PlayerColor.Blue;
     [SerializeField] private GameObject bulletPrefab = null;
-
-    [SerializeField] private float bulletForce = 20f;
+    [SerializeField] private Transform bulletSpawnPos;
 
     void Start()
     {
         mainCamera = Camera.main;
-        if(playerNumber == PlayerNumber.PLAYER1)
+
+        if (Input.GetJoystickNames().Length > 0)
         {
-            playerNum = 1;
-        }
-        else
-        {
-            playerNum = 2;
+            foreach (string joystick in Input.GetJoystickNames())
+            {
+                Debug.Log(joystick);
+            }
         }
     }
 
@@ -45,7 +42,7 @@ public class PlayerController : MonoBehaviour
         Rotate();
         Move();
 
-        if(Input.GetButtonDown("Fire1"))
+        if (Input.GetButtonDown("Player" + "Shooting" + inputType.ToString()))
         {
             Shoot();
         }
@@ -68,26 +65,35 @@ public class PlayerController : MonoBehaviour
         {
             if(inputType == InputType.Joystick)
             {
-                transform.position += GetVerticalInput() * transform.up * movementSpeed * Time.deltaTime;
+                transform.position += GetVerticalInput() * transform.forward * movementSpeed * Time.deltaTime;
             }
             else
             {
-                transform.position += GetVerticalInput() * Vector3.up * movementSpeed * Time.deltaTime;
+                transform.position += GetVerticalInput() * Vector3.forward * movementSpeed * Time.deltaTime;
             }
         }
     }
 
     float GetHorizontalInput()
     {
-        float horizontalInput = Input.GetAxis("Player" + playerNum + "Horizontal" + inputType.ToString());
+        float horizontalInput = Input.GetAxis("Player" + "Horizontal" + inputType.ToString());
         
         return horizontalInput;
     }
 
     float GetVerticalInput()
     {
-        float verticalInput = Input.GetAxis("Player" + playerNum + "Vertical" + inputType.ToString());
+        float verticalInput = Input.GetAxis("Player" + "Vertical" + inputType.ToString());
         return verticalInput;
+    }
+
+    bool GetShootingInput()
+    {
+        if(Input.GetButtonDown("Player" + "Shooting" + inputType.ToString()))
+        {
+            return true;
+        }
+        return false;
     }
 
     void Rotate()
@@ -101,25 +107,34 @@ public class PlayerController : MonoBehaviour
             Vector3 mousePosition = Input.mousePosition;
             mousePosition = mainCamera.ScreenToWorldPoint(mousePosition);
 
-            Vector2 direction = new Vector2(mousePosition.x - transform.position.x,
-                                            mousePosition.y - transform.position.y);
-            transform.up = direction;
+            Vector3 direction = new Vector3(mousePosition.x - transform.position.x, transform.position.y, mousePosition.z - transform.position.z);
+            transform.forward = direction;
         }
         else
         {
-            float rotationInput = Input.GetAxis("Player" + playerNum + "Rotation" + "Joystick");
+            float rotationInput = Input.GetAxis("Player" +  "Rotation" + "Joystick");
             if (Mathf.Abs(rotationInput) > 0.8f)
             {
-                float rotationAmount = rotationSpeed * Time.deltaTime * -rotationInput;
-                transform.rotation = Quaternion.Euler(0f, 0f, transform.rotation.eulerAngles.z + rotationAmount);
+                float rotationAmount = rotationSpeed * Time.deltaTime * rotationInput;
+                transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y + rotationAmount, 0f);
             }
         }
     }
 
     void Shoot()
     {
-        GameObject bullet = Instantiate(bulletPrefab, transform.position, transform.rotation);
-        Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-        rb.AddForce(transform.up * bulletForce, ForceMode2D.Impulse);
+        GameObject bullet = Instantiate(bulletPrefab, bulletSpawnPos.position, Quaternion.identity);
+        if(playerColor == PlayerColor.Blue)
+        {
+            bullet.tag = "BlueBullet";
+            bullet.transform.GetChild(0).GetComponent<SpriteRenderer>().color = Color.blue;
+        }
+        else
+        {
+            bullet.tag = "RedBullet";
+            bullet.transform.GetChild(0).GetComponent<SpriteRenderer>().color = Color.red;
+        }
+        Vector3 shootDir = ((transform.position + transform.forward) - transform.position).normalized;
+        bullet.GetComponent<Bullet>().Setup(shootDir);
     }
 }
